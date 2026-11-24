@@ -7,6 +7,14 @@ export async function GET(request: Request) {
   const email = searchParams.get("email") || "coordenador@escola.pt";
   const password = searchParams.get("password") || "password123";
 
+  const availableKeys = Object.keys(process.env).filter(
+    (k) =>
+      k.includes("POSTGRES") ||
+      k.includes("DATABASE") ||
+      k.includes("AUTH") ||
+      k.includes("VERCEL")
+  );
+
   try {
     const user = await prisma.user.findFirst({
       where: {
@@ -22,6 +30,7 @@ export async function GET(request: Request) {
         success: false,
         error: "User not found in database",
         emailSearched: email,
+        availableKeys,
       });
     }
 
@@ -39,16 +48,18 @@ export async function GET(request: Request) {
       envCheck: {
         hasDatabaseUrl: !!process.env.DATABASE_URL,
         hasAuthSecret: !!process.env.AUTH_SECRET,
-        authUrl: process.env.AUTH_URL || "(not set - auto detected)",
-        nodeEnv: process.env.NODE_ENV,
+        availableKeys,
       },
     });
   } catch (error: unknown) {
     const err = error as Error;
-    return NextResponse.json({
-      success: false,
-      error: err.message,
-      stack: err.stack,
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        error: err.message,
+        availableKeys,
+      },
+      { status: 500 }
+    );
   }
 }
