@@ -7,6 +7,15 @@ export async function GET(request: Request) {
   const email = searchParams.get("email") || "coordenador@escola.pt";
   const password = searchParams.get("password") || "password123";
 
+  const vercelInfo = {
+    projectName: process.env.VERCEL_PROJECT_NAME,
+    environment: process.env.VERCEL_ENV,
+    url: process.env.VERCEL_URL,
+    branch: process.env.VERCEL_GIT_COMMIT_REF,
+    targetEnv: process.env.VERCEL_TARGET_ENV,
+    allEnvCount: Object.keys(process.env).length,
+  };
+
   const availableKeys = Object.keys(process.env).filter(
     (k) =>
       k.includes("POSTGRES") ||
@@ -31,6 +40,7 @@ export async function GET(request: Request) {
         error: "User not found in database",
         emailSearched: email,
         availableKeys,
+        vercelInfo,
       });
     }
 
@@ -49,6 +59,7 @@ export async function GET(request: Request) {
         hasDatabaseUrl: !!process.env.DATABASE_URL,
         hasAuthSecret: !!process.env.AUTH_SECRET,
         availableKeys,
+        vercelInfo,
       },
     });
   } catch (error: unknown) {
@@ -58,6 +69,7 @@ export async function GET(request: Request) {
         success: false,
         error: err.message,
         availableKeys,
+        vercelInfo,
       },
       { status: 500 }
     );
