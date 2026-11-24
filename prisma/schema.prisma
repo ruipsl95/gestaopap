@@ -85,6 +85,9 @@ model BiweeklyReport {
   periodStart         DateTime
   periodEnd           DateTime
 
+  // Attachments
+  attachments          ReportAttachment[]
+
   // Project relation
   projectId           String
   project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -111,4 +114,18 @@ model SupportRequest {
   teacher     User                 @relation("TeacherRequests", fields: [teacherId], references: [id], onDelete: Cascade)
 
   @@map("support_requests")
+}
+
+model ReportAttachment {
+  id        String   @id @default(cuid())
+  fileName  String
+  fileType  String
+  fileSize  Int
+  fileData  Bytes
+  createdAt DateTime @default(now())
+
+  reportId  String
+  report    BiweeklyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
+
+  @@map("report_attachments")
 }

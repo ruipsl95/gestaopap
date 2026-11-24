@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { formatDate } from "@/lib/utils";
 import { ProgressChart } from "@/components/progress-chart";
+import { AttachmentsList } from "@/components/attachments-list";
 
 export default async function HistoryPage() {
   const session = await auth();
@@ -13,6 +14,16 @@ export default async function HistoryPage() {
     include: {
       reports: {
         orderBy: { periodStart: "asc" },
+        include: {
+          attachments: {
+            select: {
+              id: true,
+              fileName: true,
+              fileType: true,
+              fileSize: true,
+            },
+          },
+        },
       },
     },
   });
@@ -85,6 +96,9 @@ export default async function HistoryPage() {
                     <p className="text-slate-300">{report.nextTasks}</p>
                   </div>
                 </div>
+
+                {/* Anexos */}
+                <AttachmentsList attachments={report.attachments} />
 
                 {report.teacherFeedback && (
                   <div className="mt-4 p-3.5 bg-gradient-to-r from-blue-950/40 to-indigo-950/30 border border-blue-500/30 rounded-xl text-xs space-y-1">

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ClipboardCheck, HelpCircle, TrendingUp, BookOpen, Calendar, Clock } from "lucide-react";
 import { ProgressChart } from "@/components/progress-chart";
+import { AttachmentsList } from "@/components/attachments-list";
 import { formatDate, formatDateTime } from "@/lib/utils";
 
 export default async function StudentDashboard() {
@@ -16,6 +17,16 @@ export default async function StudentDashboard() {
       teacher: { select: { name: true } },
       reports: {
         orderBy: { periodStart: "asc" },
+        include: {
+          attachments: {
+            select: {
+              id: true,
+              fileName: true,
+              fileType: true,
+              fileSize: true,
+            },
+          },
+        },
       },
     },
   });
@@ -182,6 +193,8 @@ export default async function StudentDashboard() {
                     <p className="text-sm text-slate-300 line-clamp-2">
                       {report.completedTasks}
                     </p>
+                    {/* Anexos */}
+                    <AttachmentsList attachments={report.attachments} />
                     {report.teacherFeedback && (
                       <div className="mt-2 p-2.5 bg-blue-950/40 border border-blue-500/20 rounded-lg text-xs">
                         <span className="font-semibold text-blue-400 block mb-0.5">💬 Feedback do Orientador:</span>

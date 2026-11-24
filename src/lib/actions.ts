@@ -167,7 +167,7 @@ export async function submitBiweeklyReport(formData: FormData) {
     periodEnd = new Date(year, month + 1, 0, 23, 59, 59);
   }
 
-  await prisma.biweeklyReport.upsert({
+  const report = await prisma.biweeklyReport.upsert({
     where: {
       projectId_periodStart: {
         projectId: project.id,
@@ -193,10 +193,69 @@ export async function submitBiweeklyReport(formData: FormData) {
     },
   });
 
+  // Process attachments
+  const files = formData.getAll("files");
+  for (const item of files) {
+    if (item && typeof item === "object" && "arrayBuffer" in item) {
+      const file = item as File;
+      if (file.size > 0) {
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        await prisma.reportAttachment.create({
+          data: {
+            fileName: file.name,
+            fileType: file.type || "application/octet-stream",
+            fileSize: file.size,
+            fileData: buffer,
+            reportId: report.id,
+          },
+        });
+      }
+    }
+  }
+
   revalidatePath("/aluno");
   revalidatePath("/aluno/relatorio");
   revalidatePath("/aluno/historico");
   revalidatePath("/orientador");
+}
+
+export async function deleteReportAttachment(attachmentId: string) {
+  const session = await auth();
+  if (!session) throw new Error("Unauthorized");
+
+  const attachment = await prisma.reportAttachment.findUnique({
+    where: { id: attachmentId },
+    include: {
+      report: {
+        include: { project: true },
+      },
+    },
+  });
+
+  if (!attachment) throw new Error("Anexo não encontrado");
+
+  const isStudentOwner =
+    session.user.role === "STUDENT" &&
+    attachment.report.project.studentId === session.user.id;
+  const isTeacher =
+    session.user.role === "TEACHER" &&
+    attachment.report.project.teacherId === session.user.id;
+  const isCoordinator = session.user.role === "COORDINATOR";
+
+  if (!isStudentOwner && !isTeacher && !isCoordinator) {
+    throw new Error("Sem permissão para apagar este anexo");
+  }
+
+  await prisma.reportAttachment.delete({
+    where: { id: attachmentId },
+  });
+
+  revalidatePath("/aluno");
+  revalidatePath("/aluno/relatorio");
+  revalidatePath("/aluno/historico");
+  revalidatePath("/orientador");
+  return { success: true };
 }
 
 export async function updateOrientationSchedule(

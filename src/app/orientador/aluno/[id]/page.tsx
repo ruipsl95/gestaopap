@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ProgressChart } from "@/components/progress-chart";
 import { OrientationScheduler } from "@/components/teacher/orientation-scheduler";
 import { AiReportFeedback } from "@/components/teacher/ai-report-feedback";
+import { AttachmentsList } from "@/components/attachments-list";
 import { formatDate } from "@/lib/utils";
 
 export default async function StudentDetailPage({
@@ -26,6 +27,16 @@ export default async function StudentDetailPage({
       student: true,
       reports: {
         orderBy: { periodStart: "asc" },
+        include: {
+          attachments: {
+            select: {
+              id: true,
+              fileName: true,
+              fileType: true,
+              fileSize: true,
+            },
+          },
+        },
       },
     },
   });
@@ -106,6 +117,9 @@ export default async function StudentDetailPage({
                     <p className="text-slate-300">{report.nextTasks}</p>
                   </div>
                 </div>
+
+                {/* Anexos (Word, PDF, ZIP, etc.) */}
+                <AttachmentsList attachments={report.attachments} />
 
                 {/* IA & Feedback do Orientador */}
                 <AiReportFeedback

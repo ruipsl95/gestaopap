@@ -28,6 +28,16 @@ export default async function ReportPage() {
       projectId: project.id,
       periodStart: start,
     },
+    include: {
+      attachments: {
+        select: {
+          id: true,
+          fileName: true,
+          fileType: true,
+          fileSize: true,
+        },
+      },
+    },
   });
 
   return (
