@@ -41,14 +41,17 @@ export async function updateUser(id: string, formData: FormData) {
     throw new Error("Unauthorized");
   }
 
-  const name = (formData.get("name") as string).trim();
-  const email = (formData.get("email") as string).trim().toLowerCase();
+  const name = (formData.get("name") as string)?.trim();
+  const email = (formData.get("email") as string)?.trim().toLowerCase();
   const role = formData.get("role") as Role;
   const password = formData.get("password") as string;
 
-  const data: Record<string, unknown> = { name, email, role };
-  if (password) {
-    data.password = await bcrypt.hash(password, 10);
+  const data: Record<string, unknown> = {};
+  if (name) data.name = name;
+  if (email) data.email = email;
+  if (role) data.role = role;
+  if (password && password.trim().length > 0) {
+    data.password = await bcrypt.hash(password.trim(), 10);
   }
 
   await prisma.user.update({
@@ -56,6 +59,7 @@ export async function updateUser(id: string, formData: FormData) {
     data,
   });
 
+  revalidatePath("/coordenador/utilizadores");
   revalidatePath("/coordenador");
 }
 
