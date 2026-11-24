@@ -16,8 +16,8 @@ export async function createUser(formData: FormData) {
     throw new Error("Unauthorized");
   }
 
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
+  const name = (formData.get("name") as string).trim();
+  const email = (formData.get("email") as string).trim().toLowerCase();
   const password = formData.get("password") as string;
   const role = formData.get("role") as Role;
 
@@ -41,8 +41,8 @@ export async function updateUser(id: string, formData: FormData) {
     throw new Error("Unauthorized");
   }
 
-  const name = formData.get("name") as string;
-  const email = formData.get("email") as string;
+  const name = (formData.get("name") as string).trim();
+  const email = (formData.get("email") as string).trim().toLowerCase();
   const role = formData.get("role") as Role;
   const password = formData.get("password") as string;
 

@@ -2,12 +2,10 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import { GraduationCap, Eye, EyeOff, Loader2 } from "lucide-react";
 import Link from "next/link";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -20,8 +18,9 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
+      const cleanEmail = email.trim().toLowerCase();
       const result = await signIn("credentials", {
-        email,
+        email: cleanEmail,
         password,
         redirect: false,
       });
@@ -32,19 +31,20 @@ export default function LoginPage() {
         return;
       }
 
-      // Fetch session to get role
+      // Fetch session to get role and redirect with full navigation to refresh cookies
       const res = await fetch("/api/auth/session");
       const session = await res.json();
 
+      let targetUrl = "/";
       if (session?.user?.role === "COORDINATOR") {
-        router.push("/coordenador");
+        targetUrl = "/coordenador";
       } else if (session?.user?.role === "TEACHER") {
-        router.push("/orientador");
+        targetUrl = "/orientador";
       } else if (session?.user?.role === "STUDENT") {
-        router.push("/aluno");
-      } else {
-        router.push("/");
+        targetUrl = "/aluno";
       }
+
+      window.location.href = targetUrl;
     } catch {
       setError("Ocorreu um erro. Tente novamente.");
       setLoading(false);
@@ -85,6 +85,9 @@ export default function LoginPage() {
             <input
               id="email"
               type="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-3 text-white placeholder-slate-500 focus:border-blue-500"
