@@ -17,7 +17,7 @@ async function main() {
   // Create Coordinator
   const coordinator = await prisma.user.create({
     data: {
-      name: "Ana Silva",
+      name: "Rui Babo",
       email: "coordenador@escola.pt",
       password: hashedPassword,
       role: Role.COORDINATOR,
