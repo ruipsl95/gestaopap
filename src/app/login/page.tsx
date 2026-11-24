@@ -31,22 +31,11 @@ export default function LoginPage() {
         return;
       }
 
-      // Fetch session to get role and redirect with full navigation to refresh cookies
-      const res = await fetch("/api/auth/session");
-      const session = await res.json();
-
-      let targetUrl = "/";
-      if (session?.user?.role === "COORDINATOR") {
-        targetUrl = "/coordenador";
-      } else if (session?.user?.role === "TEACHER") {
-        targetUrl = "/orientador";
-      } else if (session?.user?.role === "STUDENT") {
-        targetUrl = "/aluno";
-      }
-
-      window.location.href = targetUrl;
-    } catch {
-      setError("Ocorreu um erro. Tente novamente.");
+      // Successful login - navigate to dashboard router
+      window.location.href = "/dashboard";
+    } catch (err: unknown) {
+      console.error("Login exception:", err);
+      setError("Ocorreu um erro ao autenticar. Tente novamente.");
       setLoading(false);
     }
   };

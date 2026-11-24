@@ -1,7 +1,10 @@
 import Link from "next/link";
-import { GraduationCap, ClipboardCheck, Users, BarChart3 } from "lucide-react";
+import { GraduationCap, ClipboardCheck, Users, BarChart3, ArrowRight } from "lucide-react";
+import { auth } from "@/lib/auth";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await auth();
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -11,12 +14,22 @@ export default function HomePage() {
             <GraduationCap className="h-8 w-8 text-blue-500" />
             <span className="text-xl font-bold">PAP</span>
           </div>
-          <Link
-            href="/login"
-            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium text-sm transition-colors"
-          >
-            Entrar
-          </Link>
+          {session?.user ? (
+            <Link
+              href="/dashboard"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-lg font-medium text-sm transition-colors flex items-center gap-2"
+            >
+              Dashboard
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg font-medium text-sm transition-colors"
+            >
+              Entrar
+            </Link>
+          )}
         </div>
       </header>
 
@@ -56,12 +69,22 @@ export default function HomePage() {
             </div>
           </div>
 
-          <Link
-            href="/login"
-            className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-xl font-semibold text-lg transition-colors"
-          >
-            Aceder à Plataforma
-          </Link>
+          {session?.user ? (
+            <Link
+              href="/dashboard"
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-xl font-semibold text-lg transition-colors"
+            >
+              Aceder ao Dashboard
+              <ArrowRight className="h-5 w-5" />
+            </Link>
+          ) : (
+            <Link
+              href="/login"
+              className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-3.5 rounded-xl font-semibold text-lg transition-colors"
+            >
+              Aceder à Plataforma
+            </Link>
+          )}
         </div>
       </main>
 
