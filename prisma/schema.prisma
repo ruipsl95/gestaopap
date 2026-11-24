@@ -76,6 +76,8 @@ model BiweeklyReport {
   difficulties         String   // Dificuldades sentidas
   nextTasks            String   // Tarefas para a próxima quinzena
   reportDate           DateTime @default(now()) // Data de realização do relatório
+  aiCommentary         String?  // Análise e sugestão gerada por LLM
+  teacherFeedback      String?  // Comentário/feedback final do orientador
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 

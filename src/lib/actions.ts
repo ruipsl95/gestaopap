@@ -5,6 +5,7 @@ import { auth } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { Role } from "@prisma/client";
+import { generateReportAiAnalysis } from "@/lib/ai";
 
 // ========================================
 // COORDINATOR ACTIONS
@@ -288,4 +289,84 @@ export async function updateSupportRequestStatus(
   });
 
   revalidatePath("/orientador");
+}
+
+export async function generateReportAiCommentary(reportId: string) {
+  const session = await auth();
+  if (!session || (session.user.role !== "TEACHER" && session.user.role !== "COORDINATOR")) {
+    throw new Error("Unauthorized");
+  }
+
+  const report = await prisma.biweeklyReport.findUnique({
+    where: { id: reportId },
+    include: {
+      project: {
+        include: {
+          student: true,
+          teacher: true,
+        },
+      },
+    },
+  });
+
+  if (!report) {
+    throw new Error("Relatório não encontrado");
+  }
+
+  // Se for professor, validar se é o orientador do projeto
+  if (session.user.role === "TEACHER" && report.project.teacherId !== session.user.id) {
+    throw new Error("Não tem permissão para aceder a este relatório");
+  }
+
+  const aiCommentary = await generateReportAiAnalysis({
+    studentName: report.project.student.name,
+    projectTitle: report.project.title,
+    completionPercentage: report.completionPercentage,
+    completedTasks: report.completedTasks,
+    difficulties: report.difficulties,
+    nextTasks: report.nextTasks,
+    reportDate: report.reportDate,
+  });
+
+  const updated = await prisma.biweeklyReport.update({
+    where: { id: reportId },
+    data: { aiCommentary },
+  });
+
+  revalidatePath(`/orientador/aluno/${report.project.studentId}`);
+  revalidatePath("/orientador");
+
+  return { success: true, aiCommentary: updated.aiCommentary };
+}
+
+export async function saveTeacherReportFeedback(reportId: string, feedback: string) {
+  const session = await auth();
+  if (!session || (session.user.role !== "TEACHER" && session.user.role !== "COORDINATOR")) {
+    throw new Error("Unauthorized");
+  }
+
+  const report = await prisma.biweeklyReport.findUnique({
+    where: { id: reportId },
+    include: { project: true },
+  });
+
+  if (!report) {
+    throw new Error("Relatório não encontrado");
+  }
+
+  if (session.user.role === "TEACHER" && report.project.teacherId !== session.user.id) {
+    throw new Error("Não tem permissão para editar este feedback");
+  }
+
+  await prisma.biweeklyReport.update({
+    where: { id: reportId },
+    data: { teacherFeedback: feedback.trim() },
+  });
+
+  revalidatePath(`/orientador/aluno/${report.project.studentId}`);
+  revalidatePath("/orientador");
+  revalidatePath("/aluno");
+  revalidatePath("/aluno/historico");
+
+  return { success: true };
 }

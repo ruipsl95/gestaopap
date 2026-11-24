@@ -182,6 +182,12 @@ export default async function StudentDashboard() {
                     <p className="text-sm text-slate-300 line-clamp-2">
                       {report.completedTasks}
                     </p>
+                    {report.teacherFeedback && (
+                      <div className="mt-2 p-2.5 bg-blue-950/40 border border-blue-500/20 rounded-lg text-xs">
+                        <span className="font-semibold text-blue-400 block mb-0.5">💬 Feedback do Orientador:</span>
+                        <p className="text-slate-300 italic">{report.teacherFeedback}</p>
+                      </div>
+                    )}
                   </div>
                 ))}
               {project.reports.length === 0 && (

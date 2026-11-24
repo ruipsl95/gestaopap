@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { ProgressChart } from "@/components/progress-chart";
 import { OrientationScheduler } from "@/components/teacher/orientation-scheduler";
+import { AiReportFeedback } from "@/components/teacher/ai-report-feedback";
 import { formatDate } from "@/lib/utils";
 
 export default async function StudentDetailPage({
@@ -105,6 +106,14 @@ export default async function StudentDetailPage({
                     <p className="text-slate-300">{report.nextTasks}</p>
                   </div>
                 </div>
+
+                {/* IA & Feedback do Orientador */}
+                <AiReportFeedback
+                  reportId={report.id}
+                  initialAiCommentary={report.aiCommentary}
+                  initialTeacherFeedback={report.teacherFeedback}
+                  studentName={project.student.name}
+                />
               </div>
             ))}
           {project.reports.length === 0 && (

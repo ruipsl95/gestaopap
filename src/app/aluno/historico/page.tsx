@@ -85,6 +85,17 @@ export default async function HistoryPage() {
                     <p className="text-slate-300">{report.nextTasks}</p>
                   </div>
                 </div>
+
+                {report.teacherFeedback && (
+                  <div className="mt-4 p-3.5 bg-gradient-to-r from-blue-950/40 to-indigo-950/30 border border-blue-500/30 rounded-xl text-xs space-y-1">
+                    <p className="font-semibold text-blue-300 flex items-center gap-1.5">
+                      💬 Feedback do Professor Orientador:
+                    </p>
+                    <p className="text-slate-200 leading-relaxed italic whitespace-pre-line">
+                      &ldquo;{report.teacherFeedback}&rdquo;
+                    </p>
+                  </div>
+                )}
               </div>
             ))}
           {(!project || project.reports.length === 0) && (
