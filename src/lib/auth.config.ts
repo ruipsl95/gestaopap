@@ -34,6 +34,11 @@ export const authConfig: NextAuthConfig = {
       const isLoggedIn = !!auth?.user;
       const pathname = nextUrl.pathname;
 
+      // Se já tiver sessão iniciada e for para a página de login, redireciona logo para o dashboard
+      if (isLoggedIn && pathname === "/login") {
+        return Response.redirect(new URL("/dashboard", nextUrl));
+      }
+
       const roleRoutes: Record<string, string> = {
         COORDINATOR: "/coordenador",
         TEACHER: "/orientador",
@@ -77,5 +82,10 @@ export const authConfig: NextAuthConfig = {
   providers: [], // Configured in auth.ts with Credentials
   session: {
     strategy: "jwt",
+    maxAge: 365 * 24 * 60 * 60, // 365 dias (1 ano) - guarda a sessão permanentemente
+    updateAge: 24 * 60 * 60, // atualiza e prolonga a validade a cada 24 horas de uso
+  },
+  jwt: {
+    maxAge: 365 * 24 * 60 * 60, // 365 dias
   },
 };

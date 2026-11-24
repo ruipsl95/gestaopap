@@ -116,6 +116,18 @@ export default function LoginPage() {
             </div>
           </div>
 
+          <div className="flex items-center gap-2 text-xs text-slate-300">
+            <input
+              type="checkbox"
+              id="remember"
+              defaultChecked
+              className="h-4 w-4 rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-blue-500 focus:ring-offset-slate-900"
+            />
+            <label htmlFor="remember" className="cursor-pointer select-none">
+              Manter sessão iniciada neste dispositivo
+            </label>
+          </div>
+
           <button
             type="submit"
             disabled={loading}
