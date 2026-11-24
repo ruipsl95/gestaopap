@@ -146,6 +146,8 @@ export async function submitBiweeklyReport(formData: FormData) {
   );
   const difficulties = formData.get("difficulties") as string;
   const nextTasks = formData.get("nextTasks") as string;
+  const rawReportDate = formData.get("reportDate") as string;
+  const reportDate = rawReportDate ? new Date(rawReportDate) : new Date();
 
   // Calculate current period
   const now = new Date();
@@ -176,18 +178,60 @@ export async function submitBiweeklyReport(formData: FormData) {
       completionPercentage,
       difficulties,
       nextTasks,
+      reportDate,
     },
     create: {
       completedTasks,
       completionPercentage,
       difficulties,
       nextTasks,
+      reportDate,
       periodStart,
       periodEnd,
       projectId: project.id,
     },
   });
 
+  revalidatePath("/aluno");
+  revalidatePath("/aluno/relatorio");
+  revalidatePath("/aluno/historico");
+  revalidatePath("/orientador");
+}
+
+export async function updateOrientationSchedule(
+  projectId: string,
+  orientationDateStr: string | null,
+  orientationPlace?: string
+) {
+  const session = await auth();
+  if (
+    !session ||
+    (session.user.role !== "TEACHER" && session.user.role !== "COORDINATOR")
+  ) {
+    throw new Error("Unauthorized");
+  }
+
+  if (session.user.role === "TEACHER") {
+    const project = await prisma.project.findFirst({
+      where: { id: projectId, teacherId: session.user.id },
+    });
+    if (!project) throw new Error("Projeto não encontrado ou não atribuído a si");
+  }
+
+  const orientationDate = orientationDateStr
+    ? new Date(orientationDateStr)
+    : null;
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: {
+      orientationDate,
+      orientationPlace: orientationPlace?.trim() || null,
+    },
+  });
+
+  revalidatePath("/orientador");
+  revalidatePath("/coordenador/projetos");
   revalidatePath("/aluno");
 }
 

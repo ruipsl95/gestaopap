@@ -2,12 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { createProject, deleteProject } from "@/lib/actions";
-import { Plus, Trash2, Loader2, BookOpen, TrendingUp } from "lucide-react";
+import { Plus, Trash2, Loader2, BookOpen, TrendingUp, Clock } from "lucide-react";
+import { formatDateTime } from "@/lib/utils";
 
 interface Project {
   id: string;
   title: string;
   description: string | null;
+  orientationDate?: string | Date | null;
+  orientationPlace?: string | null;
   student: { id: string; name: string };
   teacher: { id: string; name: string };
   reports: { completionPercentage: number }[];
@@ -191,6 +194,12 @@ export function ProjectManagement({
                 <span className="text-slate-400">
                   👨‍🏫 {project.teacher.name}
                 </span>
+                {project.orientationDate && (
+                  <span className="text-blue-400 flex items-center gap-1 font-medium">
+                    <Clock className="h-3.5 w-3.5" />
+                    Orientação: {formatDateTime(project.orientationDate)}
+                  </span>
+                )}
               </div>
 
               <div className="flex items-center gap-3">

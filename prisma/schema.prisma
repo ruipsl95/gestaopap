@@ -51,6 +51,10 @@ model Project {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Data e hora da orientação de PAP
+  orientationDate  DateTime?
+  orientationPlace String?
+
   // Student (one-to-one)
   studentId   String   @unique
   student     User     @relation("StudentProject", fields: [studentId], references: [id], onDelete: Cascade)
@@ -66,13 +70,14 @@ model Project {
 }
 
 model BiweeklyReport {
-  id                  String   @id @default(cuid())
-  completedTasks      String   // Tarefas realizadas
-  completionPercentage Int     // 0-100
-  difficulties        String   // Dificuldades sentidas
-  nextTasks           String   // Tarefas para a próxima quinzena
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                   String   @id @default(cuid())
+  completedTasks       String   // Tarefas realizadas
+  completionPercentage Int      // 0-100
+  difficulties         String   // Dificuldades sentidas
+  nextTasks            String   // Tarefas para a próxima quinzena
+  reportDate           DateTime @default(now()) // Data de realização do relatório
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 
   // Quinzena reference (start of the biweekly period)
   periodStart         DateTime

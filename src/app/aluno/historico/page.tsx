@@ -44,10 +44,15 @@ export default async function HistoryPage() {
             .reverse()
             .map((report) => (
               <div key={report.id} className="p-5">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm text-slate-400">
-                    {formatDate(report.periodStart)} — {formatDate(report.periodEnd)}
-                  </span>
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                  <div>
+                    <span className="text-sm font-semibold text-white">
+                      📅 Realizado em: {formatDate(report.reportDate || report.createdAt)}
+                    </span>
+                    <span className="text-xs text-slate-400 block sm:inline sm:ml-2">
+                      (Quinzena: {formatDate(report.periodStart)} — {formatDate(report.periodEnd)})
+                    </span>
+                  </div>
                   <span className="text-sm font-semibold text-blue-400">
                     {report.completionPercentage}%
                   </span>

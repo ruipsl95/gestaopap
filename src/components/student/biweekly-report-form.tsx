@@ -10,10 +10,14 @@ interface BiweeklyReportFormProps {
     completionPercentage: number;
     difficulties: string;
     nextTasks: string;
+    reportDate?: string | Date;
   } | null;
 }
 
 export function BiweeklyReportForm({ existing }: BiweeklyReportFormProps) {
+  const defaultDate = existing?.reportDate
+    ? new Date(existing.reportDate).toISOString().split("T")[0]
+    : new Date().toISOString().split("T")[0];
   const [percentage, setPercentage] = useState(
     existing?.completionPercentage ?? 0
   );
@@ -32,6 +36,23 @@ export function BiweeklyReportForm({ existing }: BiweeklyReportFormProps) {
   return (
     <form action={handleSubmit} className="space-y-6">
       <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 space-y-5">
+        {/* Report Date */}
+        <div>
+          <label className="block text-sm font-medium text-slate-300 mb-1.5">
+            📅 Data de realização do relatório *
+          </label>
+          <input
+            type="date"
+            name="reportDate"
+            defaultValue={defaultDate}
+            required
+            className="w-full sm:w-auto bg-slate-800 border border-slate-700 rounded-lg px-4 py-2.5 text-white placeholder-slate-500 focus:border-blue-500"
+          />
+          <p className="text-xs text-slate-500 mt-1">
+            Indica o dia em que realizaste este registo/relatório.
+          </p>
+        </div>
+
         {/* Completed Tasks */}
         <div>
           <label className="block text-sm font-medium text-slate-300 mb-1.5">

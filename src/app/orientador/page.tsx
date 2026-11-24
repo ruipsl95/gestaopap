@@ -2,7 +2,8 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Users, MessageSquare, TrendingUp } from "lucide-react";
+import { Users, MessageSquare, TrendingUp, Clock } from "lucide-react";
+import { formatDateTime } from "@/lib/utils";
 
 export default async function TeacherDashboard() {
   const session = await auth();
@@ -70,6 +71,16 @@ export default async function TeacherDashboard() {
                     {project.student.name}
                   </h3>
                   <p className="text-sm text-slate-400">{project.title}</p>
+                  {project.orientationDate ? (
+                    <p className="text-xs text-blue-400 font-medium flex items-center gap-1 mt-1">
+                      <Clock className="h-3 w-3" />
+                      Orientação: {formatDateTime(project.orientationDate)}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-slate-500 mt-1">
+                      Sem orientação agendada
+                    </p>
+                  )}
                 </div>
                 <div className="flex items-center gap-1 text-sm">
                   <TrendingUp className="h-4 w-4 text-blue-400" />

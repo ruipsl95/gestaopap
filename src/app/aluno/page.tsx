@@ -2,9 +2,9 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ClipboardCheck, HelpCircle, TrendingUp, BookOpen } from "lucide-react";
+import { ClipboardCheck, HelpCircle, TrendingUp, BookOpen, Calendar, Clock } from "lucide-react";
 import { ProgressChart } from "@/components/progress-chart";
-import { formatDate } from "@/lib/utils";
+import { formatDate, formatDateTime } from "@/lib/utils";
 
 export default async function StudentDashboard() {
   const session = await auth();
@@ -53,6 +53,47 @@ export default async function StudentDashboard() {
         </div>
       ) : (
         <>
+          {/* Cartão de Data e Hora da Orientação */}
+          <div className="bg-gradient-to-r from-blue-950/60 to-slate-900 border border-blue-500/30 rounded-xl p-5 shadow-lg">
+            <div className="flex items-start gap-4">
+              <div className="bg-blue-500/20 p-3 rounded-xl text-blue-400 flex-shrink-0">
+                <Calendar className="h-6 w-6" />
+              </div>
+              <div className="flex-1">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="font-semibold text-white text-base flex items-center gap-2">
+                    Orientação de PAP
+                    {project.orientationDate && (
+                      <span className="text-xs px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-normal">
+                        Agendada
+                      </span>
+                    )}
+                  </h3>
+                  <span className="text-xs text-slate-400">
+                    Orientador: <strong className="text-slate-200">{project.teacher.name}</strong>
+                  </span>
+                </div>
+                {project.orientationDate ? (
+                  <div className="mt-2 space-y-1">
+                    <p className="text-2xl font-bold text-blue-400 flex items-center gap-2">
+                      <Clock className="h-5 w-5 text-blue-400 inline" />
+                      {formatDateTime(project.orientationDate)}
+                    </p>
+                    {project.orientationPlace && (
+                      <p className="text-sm text-slate-300">
+                        📍 Local: <strong className="text-white">{project.orientationPlace}</strong>
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-400 mt-1">
+                    Ainda não tens data e hora de orientação definida pelo teu professor orientador.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Quick Stats */}
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4">
@@ -126,9 +167,14 @@ export default async function StudentDashboard() {
                 .map((report) => (
                   <div key={report.id} className="p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-slate-400">
-                        {formatDate(report.periodStart)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-slate-200">
+                          Realizado em: {formatDate(report.reportDate || report.createdAt)}
+                        </span>
+                        <span className="text-xs text-slate-500 hidden sm:inline">
+                          ({formatDate(report.periodStart)} — {formatDate(report.periodEnd)})
+                        </span>
+                      </div>
                       <span className="text-sm font-semibold text-blue-400">
                         {report.completionPercentage}%
                       </span>
