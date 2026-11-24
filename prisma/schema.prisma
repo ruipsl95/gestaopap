@@ -1,0 +1,107 @@
+// Prisma Schema for PAT/PAP Management System
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  COORDINATOR
+  TEACHER
+  STUDENT
+}
+
+enum SupportRequestStatus {
+  ABERTO
+  EM_ANALISE
+  RESOLVIDO
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  email         String    @unique
+  password      String
+  role          Role      @default(STUDENT)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Teacher relations
+  orientandos   Project[] @relation("TeacherProjects")
+
+  // Student relations
+  project       Project?  @relation("StudentProject")
+
+  // Support requests sent (student)
+  sentRequests  SupportRequest[] @relation("StudentRequests")
+  // Support requests received (teacher)
+  receivedRequests SupportRequest[] @relation("TeacherRequests")
+
+  @@map("users")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Student (one-to-one)
+  studentId   String   @unique
+  student     User     @relation("StudentProject", fields: [studentId], references: [id], onDelete: Cascade)
+
+  // Teacher (many-to-one)
+  teacherId   String
+  teacher     User     @relation("TeacherProjects", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  // Reports
+  reports     BiweeklyReport[]
+
+  @@map("projects")
+}
+
+model BiweeklyReport {
+  id                  String   @id @default(cuid())
+  completedTasks      String   // Tarefas realizadas
+  completionPercentage Int     // 0-100
+  difficulties        String   // Dificuldades sentidas
+  nextTasks           String   // Tarefas para a próxima quinzena
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  // Quinzena reference (start of the biweekly period)
+  periodStart         DateTime
+  periodEnd           DateTime
+
+  // Project relation
+  projectId           String
+  project             Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, periodStart])
+  @@map("biweekly_reports")
+}
+
+model SupportRequest {
+  id          String               @id @default(cuid())
+  subject     String
+  message     String
+  status      SupportRequestStatus @default(ABERTO)
+  response    String?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  // Student who sent it
+  studentId   String
+  student     User                 @relation("StudentRequests", fields: [studentId], references: [id], onDelete: Cascade)
+
+  // Teacher who receives it
+  teacherId   String
+  teacher     User                 @relation("TeacherRequests", fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@map("support_requests")
+}
