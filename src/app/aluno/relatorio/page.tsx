@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { BiweeklyReportForm } from "@/components/student/biweekly-report-form";
+import { RequestReportDeletionButton } from "@/components/student/request-report-deletion-button";
 import { getCurrentPeriod, formatDate } from "@/lib/utils";
 
 export default async function ReportPage() {
@@ -60,6 +61,13 @@ export default async function ReportPage() {
           <p className="text-slate-500 text-xs mt-2">
             Podes atualizar os dados abaixo se necessário.
           </p>
+          <div className="mt-4 text-left">
+            <RequestReportDeletionButton
+              reportId={existingReport.id}
+              deletionRequested={existingReport.deletionRequested}
+              deletionReason={existingReport.deletionReason}
+            />
+          </div>
         </div>
       ) : null}
 

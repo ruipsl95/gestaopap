@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { Users, MessageSquare, TrendingUp, Clock } from "lucide-react";
+import { Users, MessageSquare, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
 
 export default async function TeacherDashboard() {
@@ -16,7 +16,10 @@ export default async function TeacherDashboard() {
         student: { select: { id: true, name: true, email: true } },
         reports: {
           orderBy: { createdAt: "desc" },
-          take: 1,
+          select: {
+            completionPercentage: true,
+            deletionRequested: true,
+          },
         },
       },
     }),
@@ -59,6 +62,7 @@ export default async function TeacherDashboard() {
       <div className="space-y-4">
         {projects.map((project) => {
           const percentage = project.reports[0]?.completionPercentage ?? 0;
+          const pendingDeletions = project.reports.filter((r) => r.deletionRequested).length;
           return (
             <Link
               key={project.id}
@@ -67,9 +71,17 @@ export default async function TeacherDashboard() {
             >
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h3 className="font-semibold text-lg">
-                    {project.student.name}
-                  </h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="font-semibold text-lg">
+                      {project.student.name}
+                    </h3>
+                    {pendingDeletions > 0 && (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                        <AlertTriangle className="h-3 w-3" />
+                        Pedido de remoção ({pendingDeletions})
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm text-slate-400">{project.title}</p>
                   {project.orientationDate ? (
                     <p className="text-xs text-blue-400 font-medium flex items-center gap-1 mt-1">

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { formatDate } from "@/lib/utils";
 import { ProgressChart } from "@/components/progress-chart";
 import { AttachmentsList } from "@/components/attachments-list";
+import { RequestReportDeletionButton } from "@/components/student/request-report-deletion-button";
 
 export default async function HistoryPage() {
   const session = await auth();
@@ -110,6 +111,12 @@ export default async function HistoryPage() {
                     </p>
                   </div>
                 )}
+
+                <RequestReportDeletionButton
+                  reportId={report.id}
+                  deletionRequested={report.deletionRequested}
+                  deletionReason={report.deletionReason}
+                />
               </div>
             ))}
           {(!project || project.reports.length === 0) && (

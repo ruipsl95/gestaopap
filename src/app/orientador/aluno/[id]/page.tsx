@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ProgressChart } from "@/components/progress-chart";
 import { OrientationScheduler } from "@/components/teacher/orientation-scheduler";
 import { AiReportFeedback } from "@/components/teacher/ai-report-feedback";
+import { ReportDeletionApproval } from "@/components/teacher/report-deletion-approval";
 import { AttachmentsList } from "@/components/attachments-list";
 import { formatDate } from "@/lib/utils";
 
@@ -90,6 +91,13 @@ export default async function StudentDetailPage({
             .reverse()
             .map((report) => (
               <div key={report.id} className="p-5">
+                {report.deletionRequested && (
+                  <ReportDeletionApproval
+                    reportId={report.id}
+                    studentName={project.student.name}
+                    deletionReason={report.deletionReason}
+                  />
+                )}
                 <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
                   <div>
                     <span className="text-sm font-semibold text-white">

@@ -78,6 +78,9 @@ model BiweeklyReport {
   reportDate           DateTime @default(now()) // Data de realização do relatório
   aiCommentary         String?  // Análise e sugestão gerada por LLM
   teacherFeedback      String?  // Comentário/feedback final do orientador
+  deletionRequested    Boolean  @default(false) // Aluno solicitou remoção
+  deletionReason       String?  // Motivo do pedido de remoção
+  deletionRequestedAt  DateTime?
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
 

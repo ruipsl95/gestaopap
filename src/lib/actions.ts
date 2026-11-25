@@ -429,3 +429,112 @@ export async function saveTeacherReportFeedback(reportId: string, feedback: stri
 
   return { success: true };
 }
+
+export async function requestReportDeletion(reportId: string, reason?: string) {
+  const session = await auth();
+  if (!session || session.user.role !== "STUDENT") {
+    throw new Error("Unauthorized");
+  }
+
+  const report = await prisma.biweeklyReport.findUnique({
+    where: { id: reportId },
+    include: { project: true },
+  });
+
+  if (!report || report.project.studentId !== session.user.id) {
+    throw new Error("Relatório não encontrado ou sem permissão");
+  }
+
+  await prisma.biweeklyReport.update({
+    where: { id: reportId },
+    data: {
+      deletionRequested: true,
+      deletionReason: reason?.trim() || null,
+      deletionRequestedAt: new Date(),
+    },
+  });
+
+  revalidatePath("/aluno");
+  revalidatePath("/aluno/historico");
+  revalidatePath("/aluno/relatorio");
+  revalidatePath("/orientador");
+  revalidatePath(`/orientador/aluno/${session.user.id}`);
+
+  return { success: true };
+}
+
+export async function cancelReportDeletionRequest(reportId: string) {
+  const session = await auth();
+  if (!session || session.user.role !== "STUDENT") {
+    throw new Error("Unauthorized");
+  }
+
+  const report = await prisma.biweeklyReport.findUnique({
+    where: { id: reportId },
+    include: { project: true },
+  });
+
+  if (!report || report.project.studentId !== session.user.id) {
+    throw new Error("Relatório não encontrado ou sem permissão");
+  }
+
+  await prisma.biweeklyReport.update({
+    where: { id: reportId },
+    data: {
+      deletionRequested: false,
+      deletionReason: null,
+      deletionRequestedAt: null,
+    },
+  });
+
+  revalidatePath("/aluno");
+  revalidatePath("/aluno/historico");
+  revalidatePath("/aluno/relatorio");
+  revalidatePath("/orientador");
+  revalidatePath(`/orientador/aluno/${session.user.id}`);
+
+  return { success: true };
+}
+
+export async function respondToReportDeletion(reportId: string, approve: boolean) {
+  const session = await auth();
+  if (!session || (session.user.role !== "TEACHER" && session.user.role !== "COORDINATOR")) {
+    throw new Error("Unauthorized");
+  }
+
+  const report = await prisma.biweeklyReport.findUnique({
+    where: { id: reportId },
+    include: { project: true },
+  });
+
+  if (!report) {
+    throw new Error("Relatório não encontrado");
+  }
+
+  if (session.user.role === "TEACHER" && report.project.teacherId !== session.user.id) {
+    throw new Error("Sem permissão para gerir este relatório");
+  }
+
+  if (approve) {
+    await prisma.biweeklyReport.delete({
+      where: { id: reportId },
+    });
+  } else {
+    await prisma.biweeklyReport.update({
+      where: { id: reportId },
+      data: {
+        deletionRequested: false,
+        deletionReason: null,
+        deletionRequestedAt: null,
+      },
+    });
+  }
+
+  revalidatePath("/orientador");
+  revalidatePath(`/orientador/aluno/${report.project.studentId}`);
+  revalidatePath("/aluno");
+  revalidatePath("/aluno/historico");
+  revalidatePath("/aluno/relatorio");
+
+  return { success: true, deleted: approve };
+}
