@@ -538,3 +538,72 @@ export async function respondToReportDeletion(reportId: string, approve: boolean
 
   return { success: true, deleted: approve };
 }
+
+export async function updateTeacherAiGuidelines(guidelines: string) {
+  const session = await auth();
+  if (!session || (session.user.role !== "TEACHER" && session.user.role !== "COORDINATOR")) {
+    throw new Error("Unauthorized");
+  }
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { aiGuidelines: guidelines.trim() || null },
+  });
+
+  revalidatePath("/orientador");
+  revalidatePath("/aluno/assistente");
+
+  return { success: true };
+}
+
+export async function updateProjectAiRoadmap(projectId: string, roadmap: string) {
+  const session = await auth();
+  if (!session || (session.user.role !== "TEACHER" && session.user.role !== "COORDINATOR")) {
+    throw new Error("Unauthorized");
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+  });
+
+  if (!project) {
+    throw new Error("Projeto não encontrado");
+  }
+
+  if (session.user.role === "TEACHER" && project.teacherId !== session.user.id) {
+    throw new Error("Sem permissão para editar este projeto");
+  }
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: { aiRoadmap: roadmap.trim() || null },
+  });
+
+  revalidatePath(`/orientador/aluno/${project.studentId}`);
+  revalidatePath("/orientador");
+  revalidatePath("/aluno/assistente");
+
+  return { success: true };
+}
+
+export async function clearStudentChatHistory() {
+  const session = await auth();
+  if (!session || session.user.role !== "STUDENT") {
+    throw new Error("Unauthorized");
+  }
+
+  const project = await prisma.project.findFirst({
+    where: { studentId: session.user.id },
+  });
+
+  if (!project) {
+    throw new Error("Projeto não encontrado");
+  }
+
+  await prisma.chatMessage.deleteMany({
+    where: { projectId: project.id },
+  });
+
+  revalidatePath("/aluno/assistente");
+  return { success: true };
+}

@@ -4,12 +4,13 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Users, MessageSquare, TrendingUp, Clock, AlertTriangle } from "lucide-react";
 import { formatDateTime } from "@/lib/utils";
+import { TeacherAiGuidelinesEditor } from "@/components/teacher/ai-guidelines-editor";
 
 export default async function TeacherDashboard() {
   const session = await auth();
   if (!session) redirect("/login");
 
-  const [projects, supportRequests] = await Promise.all([
+  const [projects, supportRequests, teacher] = await Promise.all([
     prisma.project.findMany({
       where: { teacherId: session.user.id },
       include: {
@@ -28,6 +29,10 @@ export default async function TeacherDashboard() {
         teacherId: session.user.id,
         status: { in: ["ABERTO", "EM_ANALISE"] },
       },
+    }),
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { aiGuidelines: true },
     }),
   ]);
 
@@ -57,6 +62,9 @@ export default async function TeacherDashboard() {
           <p className="text-sm text-slate-400">Pedidos Pendentes</p>
         </div>
       </div>
+
+      {/* Metodologia & Diretrizes do Orientador para o Chatbot */}
+      <TeacherAiGuidelinesEditor initialGuidelines={teacher?.aiGuidelines ?? null} />
 
       {/* Students List */}
       <div className="space-y-4">

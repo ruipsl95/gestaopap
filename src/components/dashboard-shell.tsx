@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   GraduationCap,
+  Bot,
 } from "lucide-react";
 import type { Role } from "@prisma/client";
 
@@ -42,6 +43,7 @@ const navItems: Record<Role, { href: string; label: string; icon: React.ElementT
   STUDENT: [
     { href: "/aluno", label: "Progresso", icon: LayoutDashboard },
     { href: "/aluno/relatorio", label: "Relatório", icon: ClipboardCheck },
+    { href: "/aluno/assistente", label: "Assistente IA", icon: Bot },
     { href: "/aluno/suporte", label: "Suporte", icon: HelpCircle },
     { href: "/aluno/historico", label: "Histórico", icon: History },
   ],

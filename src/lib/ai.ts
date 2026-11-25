@@ -180,3 +180,123 @@ ${diffDiagnosis}
 3. Como está o ponto de situação da escrita do relatório escrito da PAP face ao trabalho prático já concluído?
 4. Quais são os bloqueios que prevês para a execução das próximas tarefas planeadas?`;
 }
+
+export interface StudentChatInput {
+  studentName: string;
+  teacherName: string;
+  projectTitle: string;
+  projectDescription?: string | null;
+  teacherGuidelines?: string | null;
+  projectRoadmap?: string | null;
+  latestReport?: {
+    completionPercentage: number;
+    completedTasks: string;
+    difficulties: string;
+    nextTasks: string;
+  } | null;
+  history: { role: "user" | "assistant"; content: string }[];
+  userMessage: string;
+}
+
+export async function generateStudentChatReply(
+  input: StudentChatInput
+): Promise<{ reply: string; provider: "openai" | "fallback" }> {
+  const openAiKey = process.env.OPENAI_API_KEY;
+  const openAiModel = process.env.OPENAI_MODEL || "gpt-4o-mini";
+
+  const latestReportText = input.latestReport
+    ? `- Progresso atual: ${input.latestReport.completionPercentage}%
+- Tarefas realizadas recentemente: ${input.latestReport.completedTasks}
+- Dificuldades reportadas: ${input.latestReport.difficulties}
+- Próximas tarefas planeadas: ${input.latestReport.nextTasks}`
+    : "O aluno ainda não submeteu relatórios quinzenais.";
+
+  const systemPrompt = `És o Assistente Virtual de PAP (Prova de Aptidão Profissional) do Professor Orientador ${input.teacherName}.
+Estás a conversar com o aluno ${input.studentName}, cujo projeto de PAP se intitula "${input.projectTitle}".
+${input.projectDescription ? `Descrição do projeto: ${input.projectDescription}` : ""}
+
+A tua missão é ajudar o aluno a avançar no seu projeto, tirar dúvidas técnicas ou metodológicas e traçar passos práticos, SEMPRE alinhado com as ideias, metodologia e caminhos definidos pelo Professor Orientador.
+
+[METODOLOGIA E DIRETRIZES GERAIS DO PROFESSOR ORIENTADOR (${input.teacherName})]:
+${
+  input.teacherGuidelines?.trim()
+    ? input.teacherGuidelines.trim()
+    : "Priorizar um MVP funcional, manter entregas quinzenais consistentes, documentar cada funcionalidade à medida que é desenvolvida e testar antes de avançar."
+}
+
+[IDEIAS E CAMINHO TRAÇADO PARA ESTE PROJETO ESPECÍFICO]:
+${
+  input.projectRoadmap?.trim()
+    ? input.projectRoadmap.trim()
+    : "Ainda não foi registado um roteiro específico pelo orientador. Ajuda o aluno a decompor as tarefas de forma lógica e incremental."
+}
+
+[PONTO DE SITUAÇÃO ATUAL DO ALUNO]:
+${latestReportText}
+
+REGRAS DE CONDUTA:
+1. Responde sempre em Português de Portugal, com tom pedagógico, motivador, claro e objetivo.
+2. Sempre que o aluno pedir próximos passos, planos ou ajuda para tarefas, baseia-te diretamente nas diretrizes e no caminho traçado pelo professor orientador acima.
+3. Decompõe sugestões complexas em tarefas pequenas e acionáveis (ex: Passo 1, Passo 2, Passo 3).
+4. Não faças o trabalho todo pelo aluno se ele pedir o projeto completo pronto; orienta-o, explica conceitos, dá exemplos curtos e ajuda-o a pensar.
+5. Relembra o aluno de validar decisões estruturais importantes na próxima reunião de orientação com o professor ${input.teacherName}.`;
+
+  if (openAiKey) {
+    try {
+      const messages = [
+        { role: "system", content: systemPrompt },
+        ...input.history.slice(-12).map((m) => ({
+          role: m.role,
+          content: m.content,
+        })),
+        { role: "user", content: input.userMessage },
+      ];
+
+      const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${openAiKey}`,
+        },
+        body: JSON.stringify({
+          model: openAiModel,
+          messages,
+          temperature: 0.7,
+          max_tokens: 900,
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const text = data?.choices?.[0]?.message?.content;
+        if (text && typeof text === "string" && text.trim().length > 0) {
+          return { reply: text.trim(), provider: "openai" };
+        }
+      } else {
+        console.warn("OpenAI API error:", response.status, await response.text());
+      }
+    } catch (err) {
+      console.warn("Erro ao contactar OpenAI API:", err);
+    }
+  }
+
+  // Fallback estruturado caso a OPENAI_API_KEY ainda não esteja configurada
+  const firstName = input.studentName.split(" ")[0];
+  const roadmapSection = input.projectRoadmap?.trim()
+    ? `\n\n🧭 **Caminho traçado pelo teu orientador (${input.teacherName}):**\n${input.projectRoadmap.trim()}`
+    : "";
+  const guidelinesSection = input.teacherGuidelines?.trim()
+    ? `\n\n📌 **Metodologia do orientador:**\n${input.teacherGuidelines.trim()}`
+    : "";
+
+  const fallbackReply = `Olá ${firstName}! Recebi a tua questão sobre **"${input.projectTitle}"**.${roadmapSection}${guidelinesSection}
+
+💡 **Sugestão de próximos passos:**
+1. Revê o último objetivo definido para a tua quinzena atual (${input.latestReport ? `estás nos ${input.latestReport.completionPercentage}%` : "arranque do projeto"}).
+2. Divide a tarefa que queres resolver agora em blocos pequenos de 1 a 2 horas (ex: primeiro estrutura/dados, depois lógica, depois testes).
+3. Se tiveres algum bloqueio técnico, regista-o no teu próximo relatório ou abre um pedido de suporte para o professor ${input.teacherName}.
+
+*(Nota técnica: Para ativar respostas completas em tempo real com o **ChatGPT**, é necessário configurar a variável de ambiente \`OPENAI_API_KEY\` na Vercel/servidor.)*`;
+
+  return { reply: fallbackReply, provider: "fallback" };
+}

@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { ProgressChart } from "@/components/progress-chart";
 import { OrientationScheduler } from "@/components/teacher/orientation-scheduler";
+import { ProjectAiRoadmapEditor } from "@/components/teacher/project-ai-roadmap-editor";
 import { AiReportFeedback } from "@/components/teacher/ai-report-feedback";
 import { ReportDeletionApproval } from "@/components/teacher/report-deletion-approval";
 import { AttachmentsList } from "@/components/attachments-list";
@@ -70,6 +71,13 @@ export default async function StudentDetailPage({
         currentDate={project.orientationDate}
         currentPlace={project.orientationPlace}
         studentName={project.student.name}
+      />
+
+      {/* Ideias & Caminho Traçado para o Chatbot */}
+      <ProjectAiRoadmapEditor
+        projectId={project.id}
+        studentName={project.student.name}
+        initialRoadmap={project.aiRoadmap}
       />
 
       {/* Progress Chart */}

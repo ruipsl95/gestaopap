@@ -27,6 +27,7 @@ model User {
   password      String
   role          Role      @default(STUDENT)
   image         String?
+  aiGuidelines  String?   // Metodologia e diretrizes gerais do orientador para o Chatbot
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
@@ -54,6 +55,7 @@ model Project {
   // Data e hora da orientação de PAP
   orientationDate  DateTime?
   orientationPlace String?
+  aiRoadmap        String?   // Ideias e caminho de tarefas traçado pelo orientador para este projeto
 
   // Student (one-to-one)
   studentId   String   @unique
@@ -65,6 +67,9 @@ model Project {
 
   // Reports
   reports     BiweeklyReport[]
+
+  // Chatbot messages
+  chatMessages ChatMessage[]
 
   @@map("projects")
 }
@@ -131,4 +136,16 @@ model ReportAttachment {
   report    BiweeklyReport @relation(fields: [reportId], references: [id], onDelete: Cascade)
 
   @@map("report_attachments")
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  role      String   // "user" | "assistant"
+  content   String
+  createdAt DateTime @default(now())
+
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@map("chat_messages")
 }
