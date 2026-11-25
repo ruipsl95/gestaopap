@@ -8,6 +8,54 @@ interface ReportAnalysisInput {
   reportDate?: Date | string;
 }
 
+function computeScheduleContext(
+  completionPercentage: number,
+  reportDateInput?: Date | string
+) {
+  const refDate = reportDateInput ? new Date(reportDateInput) : new Date();
+  const startYear =
+    refDate.getMonth() >= 8 ? refDate.getFullYear() : refDate.getFullYear() - 1;
+  const projectStartDate = new Date(startYear, 8, 15); // 15 de setembro
+
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const daysElapsed = Math.max(
+    0,
+    Math.floor((refDate.getTime() - projectStartDate.getTime()) / msPerDay)
+  );
+  const weeksElapsed = Math.floor(daysElapsed / 7);
+  // Ano letivo típico de PAP: 15 de setembro a meados de junho (~273 dias / 39 semanas)
+  const expectedPercentage = Math.min(
+    100,
+    Math.max(0, Math.round((daysElapsed / 273) * 100))
+  );
+  const delta = completionPercentage - expectedPercentage;
+
+  let scheduleStatus = "Dentro do prazo esperado";
+  if (delta <= -20) {
+    scheduleStatus = `ATRASO CRÍTICO (${Math.abs(delta)}% abaixo do esperado para esta data)`;
+  } else if (delta <= -10) {
+    scheduleStatus = `Atraso moderado (${Math.abs(delta)}% abaixo do esperado para esta data)`;
+  } else if (delta >= 10) {
+    scheduleStatus = `Adiantado (${delta}% acima do ritmo esperado)`;
+  }
+
+  const formatPt = (d: Date) =>
+    d.toLocaleDateString("pt-PT", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+
+  return {
+    startDateStr: formatPt(projectStartDate),
+    reportDateStr: formatPt(refDate),
+    weeksElapsed,
+    expectedPercentage,
+    delta,
+    scheduleStatus,
+  };
+}
+
 /**
  * Gera uma análise pedagógica e sugestão de comentário para o professor orientador
  * utilizando Gemini (se GEMINI_API_KEY estiver configurada), OpenAI (se OPENAI_API_KEY estiver configurada)
@@ -16,14 +64,25 @@ interface ReportAnalysisInput {
 export async function generateReportAiAnalysis(input: ReportAnalysisInput): Promise<string> {
   const geminiKey = process.env.GEMINI_API_KEY;
   const openAiKey = process.env.OPENAI_API_KEY;
+  const schedule = computeScheduleContext(
+    input.completionPercentage,
+    input.reportDate
+  );
 
   const prompt = `És um assistente pedagógico especializado no acompanhamento de Provas de Aptidão Profissional (PAP) do 12º ano do Ensino Profissional em Portugal.
 Analisa o seguinte relatório quinzenal submetido pelo aluno e gera uma análise estruturada para o Professor Orientador:
 
+CONTEXTO TEMPORAL DO ANO LETIVO:
+- Data de início oficial dos projetos de PAP: ${schedule.startDateStr} (15 de setembro)
+- Data do relatório: ${schedule.reportDateStr}
+- Tempo decorrido desde o início dos projetos: ${schedule.weeksElapsed} semanas
+- Progresso de referência esperado nesta altura do ano letivo: ~${schedule.expectedPercentage}%
+- Situação face ao calendário: ${schedule.scheduleStatus}
+
 DADOS DO ALUNO E PROJETO:
 - Aluno: ${input.studentName}
 - Projeto: ${input.projectTitle}
-- Percentagem de Execução declarada: ${input.completionPercentage}%
+- Percentagem de Execução declarada pelo aluno: ${input.completionPercentage}%
 - Tarefas Realizadas:
 ${input.completedTasks}
 - Dificuldades Sentidas:
@@ -33,17 +92,17 @@ ${input.nextTasks}
 
 INSTRUÇÕES DE RESPOSTA:
 Elabora a resposta em Português de Portugal com a seguinte estrutura em Markdown:
-### 📊 Análise do Progresso
-(Avalia se as tarefas realizadas são compatíveis com a percentagem de ${input.completionPercentage}% indicada, o ritmo de trabalho e a coerência entre o planeado e o realizado)
+### 📊 Análise do Progresso & Calendário
+(Avalia se as tarefas realizadas são compatíveis com a percentagem de ${input.completionPercentage}% indicada e compara explicitamente com o ritmo esperado desde 15 de setembro — cerca de ${schedule.expectedPercentage}% após ${schedule.weeksElapsed} semanas. Se houver atraso, assinala-o claramente com rigor pedagógico.)
 
 ### ⚠️ Dificuldades & Diagnóstico
-(Identifica as principais barreiras técnicas, metodológicas ou de gestão de tempo indicadas pelo aluno e os riscos para o sucesso da PAP)
+(Identifica as principais barreiras técnicas, metodológicas ou de gestão de tempo indicadas pelo aluno e os riscos de atraso para a conclusão da PAP.)
 
 ### 💬 Sugestão de Feedback para o Aluno
-(Redige uma mensagem construtiva, motivadora e orientadora que o professor possa enviar diretamente ao aluno, elogiando o esforço e apontando correções)
+(Redige uma mensagem construtiva, motivadora mas firme se houver atraso, que o professor possa enviar diretamente ao aluno, apontando o que falta recuperar ou consolidar.)
 
 ### 🎯 Perguntas para a Próxima Reunião de Orientação
-(3 a 4 perguntas diretas e técnicas para o professor colocar ao aluno na próxima orientação)
+(3 a 4 perguntas diretas e técnicas para o professor colocar ao aluno na próxima orientação, incluindo verificação de prazos caso esteja atrasado.)
 
 Sê rigoroso, construtivo e pedagógico.`;
 
@@ -119,7 +178,8 @@ Sê rigoroso, construtivo e pedagógico.`;
 }
 
 function generateHeuristicFeedback(input: ReportAnalysisInput): string {
-  const { studentName, completionPercentage, completedTasks, difficulties, nextTasks } = input;
+  const { studentName, completionPercentage, completedTasks, difficulties, nextTasks, reportDate } = input;
+  const schedule = computeScheduleContext(completionPercentage, reportDate);
 
   const diffLower = difficulties.toLowerCase();
   const hasNoDifficulties =
@@ -128,31 +188,40 @@ function generateHeuristicFeedback(input: ReportAnalysisInput): string {
     diffLower.includes("tudo bem") ||
     diffLower.trim().length < 5;
 
+  let scheduleNote = "";
+  if (schedule.delta <= -20) {
+    scheduleNote = `⚠️ **Alerta de Atraso Significativo:** Tendo os projetos iniciado a ${schedule.startDateStr} (15 de setembro, há ${schedule.weeksElapsed} semanas), o progresso de referência esperado nesta fase seria de cerca de **${schedule.expectedPercentage}%**. Com **${completionPercentage}%** declarados, o aluno encontra-se **${Math.abs(schedule.delta)}% abaixo do ritmo esperado**.`;
+  } else if (schedule.delta <= -10) {
+    scheduleNote = `⚠️ **Atenção ao Calendário:** Desde o início a ${schedule.startDateStr} (${schedule.weeksElapsed} semanas decorridas), o progresso esperado ronda os **${schedule.expectedPercentage}%**. Estando nos **${completionPercentage}%**, verifica-se um ligeiro atraso de cerca de ${Math.abs(schedule.delta)}%.`;
+  } else {
+    scheduleNote = `✅ **Ritmo face ao Calendário:** Desde o início a ${schedule.startDateStr} (${schedule.weeksElapsed} semanas decorridas), o progresso esperado ronda os **${schedule.expectedPercentage}%**, pelo que os **${completionPercentage}%** declarados estão alinhados com o calendário.`;
+  }
+
   let progressEval = "";
   if (completionPercentage < 25) {
-    progressEval = `O aluno declara ${completionPercentage}% de execução. O projeto encontra-se em fase inicial. É essencial verificar se a calendarização inicial está a ser cumprida e se a pesquisa prévia e arquitetura da solução estão consolidadas.`;
+    progressEval = `O aluno declara ${completionPercentage}% de execução (fase inicial). É essencial verificar se a pesquisa prévia, os requisitos e a arquitetura da solução já estão consolidados.`;
   } else if (completionPercentage < 60) {
-    progressEval = `O aluno reporta ${completionPercentage}% de avanço, correspondendo à fase central de desenvolvimento e implementação. O volume de tarefas realizadas demonstra atividade regular, mas exige atenção na consolidação dos módulos essenciais da PAP.`;
+    progressEval = `O aluno reporta ${completionPercentage}% de avanço (fase central de desenvolvimento). O volume de trabalho exige foco na conclusão dos módulos nucleares da PAP.`;
   } else if (completionPercentage < 85) {
-    progressEval = `Com ${completionPercentage}% de execução concluída, o projeto aproxima-se da fase de testes e finalização. É fundamental começar a articular o desenvolvimento prático com a redação formal do relatório escrito de PAP.`;
+    progressEval = `Com ${completionPercentage}% concluídos, o projeto aproxima-se da fase de testes e finalização, devendo articular a parte prática com a redação do relatório escrito.`;
   } else {
-    progressEval = `O aluno reporta um avanço substancial de ${completionPercentage}%. Encontra-se na reta final, sendo prioridade os testes de validação, preparação da demonstração prática e revisão da memória descritiva.`;
+    progressEval = `Com ${completionPercentage}% de execução, o projeto entra na reta final: validação, testes integrados e preparação da apresentação final.`;
   }
 
   const tasksSummary =
     completedTasks.trim().length > 0
-      ? `As tarefas concluídas reportadas ("${completedTasks.slice(0, 80)}...") evidenciam cumprimento das metas propostas.`
+      ? `As tarefas reportadas ("${completedTasks.slice(0, 80)}...") devem ser validadas na próxima orientação.`
       : "Recomenda-se detalhar melhor as tarefas executadas no próximo relatório.";
 
   let diffDiagnosis = "";
   if (hasNoDifficulties) {
-    diffDiagnosis = `O aluno não referiu dificuldades significativas nesta quinzena. Recomenda-se aferir se o trabalho desenvolvido decorreu de facto sem entraves técnicos ou se há tópicos complexos a serem adiados.`;
+    diffDiagnosis = `O aluno não referiu dificuldades significativas nesta quinzena. Recomenda-se aferir se o trabalho decorreu sem entraves ou se existem bloqueios técnicos não reportados (especialmente se houver atraso face a 15 de setembro).`;
   } else if (
     diffLower.includes("tempo") ||
     diffLower.includes("prazo") ||
     diffLower.includes("atraso")
   ) {
-    diffDiagnosis = `Foram identificados constrangimentos na gestão do tempo e prazos. Recomenda-se ajudar o aluno a priorizar as funcionalidades estritamente necessárias (MVP - Produto Mínimo Viável) antes de passar a funcionalidades secundárias.`;
+    diffDiagnosis = `Foram identificados constrangimentos na gestão do tempo e prazos. Recomenda-se ajudar o aluno a priorizar as funcionalidades estritamente necessárias (MVP) para recuperar o calendário.`;
   } else if (
     diffLower.includes("código") ||
     diffLower.includes("bug") ||
@@ -165,20 +234,28 @@ function generateHeuristicFeedback(input: ReportAnalysisInput): string {
     diffDiagnosis = `O aluno identificou os seguintes constrangimentos: "${difficulties}". É conveniente clarificar estas questões na sessão de orientação para evitar bloqueios nas próximas fases.`;
   }
 
-  return `### 📊 Análise do Progresso
+  const firstName = studentName.split(" ")[0];
+  const suggestionMessage =
+    schedule.delta <= -15
+      ? `"Olá ${firstName}, como os projetos arrancaram a 15 de setembro e já passaram ${schedule.weeksElapsed} semanas, os ${completionPercentage}% atuais indicam que precisamos de acelerar o ritmo para não comprometer os prazos da PAP. Vamos focar-nos no essencial das próximas tarefas (${nextTasks.slice(0, 70)}...) e definir metas semanais concretas na nossa próxima orientação."`
+      : `"Olá ${firstName}, bom trabalho no cumprimento do plano desta quinzena. Continua focado na execução das próximas tarefas planeadas (${nextTasks.slice(0, 80)}...) e mantém a regularidade face ao calendário desde 15 de setembro. Na próxima orientação revemos os detalhes!"`;
+
+  return `### 📊 Análise do Progresso & Calendário
+${scheduleNote}
+
 ${progressEval} ${tasksSummary}
 
 ### ⚠️ Dificuldades & Diagnóstico
 ${diffDiagnosis}
 
 ### 💬 Sugestão de Feedback para o Aluno
-"Olá ${studentName.split(" ")[0]}, bom trabalho no cumprimento do plano desta quinzena. Continua focado na execução das próximas tarefas planeadas: ${nextTasks.slice(0, 80)}... Na próxima reunião de orientação vamos rever em detalhe o progresso e analisar as dificuldades que sentiste. Força!"
+${suggestionMessage}
 
 ### 🎯 Perguntas para a Próxima Reunião de Orientação
 1. Consegues demonstrar na prática o que foi implementado nas tarefas concluídas desta quinzena?
-2. Que estratégia ou solução estás a considerar para ultrapassar as dificuldades reportadas?
-3. Como está o ponto de situação da escrita do relatório escrito da PAP face ao trabalho prático já concluído?
-4. Quais são os bloqueios que prevês para a execução das próximas tarefas planeadas?`;
+2. Tendo em conta o tempo decorrido desde 15 de setembro (${schedule.weeksElapsed} semanas), que plano concreto vais seguir para cumprir as próximas metas?
+3. Que estratégia estás a considerar para ultrapassar as dificuldades reportadas?
+4. Como está o ponto de situação do relatório escrito da PAP face ao trabalho prático?`;
 }
 
 export interface StudentChatInput {
